@@ -58,6 +58,23 @@ def health_check():
     return {"status": "ok", "service": "state-farm-catastrophe-response"}
 
 
+@app.get("/v1/models")
+def list_models():
+    """List available models (OpenAI-compatible) for Nemotron client integration."""
+
+    return {
+        "object": "list",
+        "data": [
+            {
+                "id": "nemotron",
+                "object": "model",
+                "created": 1677610602,
+                "owned_by": "nvidia",
+            }
+        ],
+    }
+
+
 @app.post(
     f"{settings.API_V1_STR}/telemetry/ingest",
     response_model=TelemetryIngestResponse,
