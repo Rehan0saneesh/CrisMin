@@ -51,6 +51,13 @@ def read_root():
     return {"status": "ok", "service": "state-farm-catastrophe-response"}
 
 
+@app.get("/health")
+def health_check():
+    """Health check endpoint for load balancers and monitoring."""
+
+    return {"status": "ok", "service": "state-farm-catastrophe-response"}
+
+
 @app.post(
     f"{settings.API_V1_STR}/telemetry/ingest",
     response_model=TelemetryIngestResponse,
