@@ -6,11 +6,19 @@ and news headlines.
 """
 
 import json
+import os
 import signal
 import sys
 import time
 
 import paho.mqtt.client as mqtt
+
+# Ensure the project root is on sys.path so 'test.*' imports work
+# whether run from the test/ directory or the project root.
+_TEST_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.dirname(_TEST_DIR)
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 from test.data_generator import generate_batch, generate_claim_report
 from test.mqtt_config import (
