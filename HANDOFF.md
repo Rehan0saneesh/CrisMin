@@ -2,6 +2,34 @@
 
 This document is a comprehensive handoff for the CrisMin (Crisis Minimum) State Farm Catastrophe Response & Optimization Platform. It is intended for another agent or developer who will continue work on this repository, with particular focus on improving the frontend dashboard which currently "does not look good."
 
+> **Update 2026-11-08 (live engine).** The backend now runs a continuous operations engine (`backend/app/engine.py`); the dashboard polls `GET /api/v1/ops/state` every second and no longer computes anything client-side.
+> - **Nemotron intake** (`services/nemotron_client.py`): every report (seed, simulated feed, MQTT, `/telemetry/ingest`, New report dialog) is batched (8/request, ≥2 s apart for the ~40 RPM free tier) to `integrate.api.nvidia.com` with thinking disabled. It returns severity, damage type, location, people-at-risk, resource demand, and confidence. The model is auto-selected from `NEMOTRON_MODEL_PREFERENCE` against `/v1/models` (pin it with `NEMOTRON_MODEL`). On 401/403/404/429/timeouts or bad JSON, those reports fall back to keyword rules and the UI shows "Rule fallback" with the error. `.env` is now found from any working directory.
+> - **Routing QUBO** (`routing_qubo.py`): x_uc per (idle unit, open claim). h_uc = −urgency + 0.04·min(eta, 240 min) + type affinity; λ couplings forbid one unit on two claims or two units on one claim. Each solve anneals 96 replicas, each with sampled severity noise (from Nemotron confidence, correlated per damage category) and traffic noise (correlated per unit). Moves are feasibility-preserving (swap-mixer style).
+> - **Confidence** = share of replicas where the route is within ε = 0.5 of that replica's optimum (regret via evict/swap ΔE). For critical claims (sev ≥ 8), the engine commits on *coverage* (share of replicas that serve the claim with any unit). **Auto-dispatch** commits at ≥ 90% for 3 consecutive solves (re-checked every 0.5 s while confirming, otherwise every 3 s). Ties prefer the previous plan so the streak isn't reset by symmetric flips.
+> - **Simulation:** units travel and serve on a compressed clock (`TIME_SCALE=60`: 1 s = 1 sim-min); claims go pending → open → assigned → on_scene → resolved. The built-in feed (`feed.py`) adds a report about every 20 s (`SIM_FEED_ENABLED`).
+> - **New endpoints:** `/ops/state?since=`, `/ops/dispatch`, `/ops/recall`, `/ops/autopilot`, `/ops/feed`, `/ops/solve`, `/ops/reset`. The legacy `/optimize/run`, `/deployments/status`, and `{"reports":[…]}` ingest still work (TUI and MQTT unchanged).
+> - **Tests:** `cd backend && python -m pytest -q tests` (15 tests: brute-force optimum, tie handling, critical coverage, far-unit cap, parser and fallback). `pytest` is not in requirements.txt; install it separately.
+> - **Tuning knobs** are all in `app/config.py` (env-overridable): `CONFIDENCE_THRESHOLD`, `COMMIT_STREAK`, `SOLVER_*`, `NEMOTRON_*`, `TIME_SCALE`, `SIM_FEED_*`.
+> - **Not verified live:** the real NVIDIA endpoint was unreachable from the dev sandbox. The client was tested against a fake OpenAI-compatible server (auto-select, 404 fall-through, 429 cooldown, 401 fallback). If the System tab shows a 401, the key may lack the "Public API Endpoints" chat entitlement on build.nvidia.com.
+
+> **Update 2026-11-08 (UI rework).** The frontend was restyled to a Vercel/Linear-style system:
+> - **Palette:** zinc neutrals (`bg-zinc-950`, `bg-zinc-900/50`, `border-zinc-800/80`). Four semantic status tokens (`critical`/`warning`/`success`/`accent`) live in `globals.css`, with a hex mirror in `src/lib/tokens.ts` for Leaflet.
+> - **Type:** Inter for UI text; JetBrains Mono (`.num` = `font-mono text-xs tabular-nums`) for every metric, ID, timestamp, coordinate, and log line.
+> - **Primitives:** `src/components/ui.tsx` (Button, Badge, Dot, Tabs, Segmented, Pane, EmptyState, Skeleton, Kbd, ProgressBar).
+> - **Layout:** header with breadcrumb and health/latency; fleet sidebar (search + segmented filter, hover Recall, Dispatch-to-target); KPI strip; map pane with layer toggles in its header; claims table with tabs (All / Critical / Queued / Open) + filter; right Ops pane with tabs (Activity / Alerts / Resources). Ingest is a modal dialog.
+> - **Shortcuts:** `N` new report · `O` optimize · `[` toggle fleet · `Esc` clear selection · `⌘↵` submit.
+> - Removed `KPICards`, `DispatchLog`, `ResourceAllocation`, `RedAlertWidget`, `FleetCards` (replaced by `KPIStrip`, `OpsPanel`).
+
+> **Update 2026-11-08 — P1 and most P2 frontend items are done.** Summary:
+> - **Data wiring:** Run Optimization sends every open claim's report text to `/optimize/run` with `available_units` = idle unit count. The backend's severity scores and deploy bits update the table, map pins, KPIs, and units. The nearest idle unit goes to each selected claim, highest severity first. Selected claims with no free unit show as *Queued*. Seed claims are scored automatically once the backend is reachable. Ingest (sidebar form, or the TopNav button) calls `/telemetry/ingest`.
+> - **Backend:** `/deployments/status` now returns the latest optimization run, held in memory until DB persistence exists.
+> - **Layout:** full-height flex layout with no arbitrary heights. The sidebar was `position: fixed` and covered the map; it is now in the layout flow on desktop and a collapsible overlay below `lg`. Weather alerts are a collapsible map overlay instead of a fixed widget over the table.
+> - **Tokens:** palette lives in `globals.css` (RGB vars), is exposed through `tailwind.config.js` (`bg-canvas`, `text-muted`, `border-line`, ...), and is mirrored in `src/lib/tokens.ts` for Leaflet. Unit status colors are consistent everywhere (deployed = blue, en route = amber, idle = green).
+> - **UX:** map/table cross-selection with fly-to, layer toggles, dispatch route lines, cursor readout, legend, manual dispatch/recall, loading skeletons and solving overlay, empty states, backend-offline banner with health polling, live clock.
+> - **Dispatch log** now records only real actions; the random fake events were removed.
+> - `FleetCards.tsx` is unused (units are in the sidebar) and can be deleted.
+> - **Still open:** the QUBO penalty does not enforce exactly K deployments. Use `lambda*(sum(x)-K)^2` for that; the UI queues any extras. DB persistence, real geocoding, the real Nemotron client, SSE, and the TUI are unchanged.
+
 ## Table of Contents
 
 1. [Project Overview](#project-overview)
@@ -204,7 +232,7 @@ The pipeline operates across four sequential stages:
 - All components render without runtime errors (in production build).
 - Dark mode color system defined in `globals.css` (CSS variables + Tailwind arbitrary values).
 - Layout: TopNav + Sidebar + Map + ClaimsTable + ResourceAllocation + FleetCards + DispatchLog + RedAlertWidget.
-- Map uses Leaflet with CartoDB Dark Matter tiles (no broken tiles, no API key required).
+- Map uses Leaflet with an OpenFreeMap vector basemap (`https://tiles.openfreemap.org/styles/dark`), rendered through `maplibre-gl` + `@maplibre/maplibre-gl-leaflet`. Free, no API key, no request limits. Override the style with `NEXT_PUBLIC_BASEMAP_STYLE` (e.g. `/styles/fiord`, `/styles/liberty`). If the style fails to load, the map shows a "Basemap unavailable" notice and the overlays keep working.
 - Hurricane polygon, cleared zone, storm circle, weather front line rendered.
 - Color-coded claim pins (red/amber/green by severity) and unit pins (blue/amber/green by status).
 - KPI cards: Total Claims (4157), Deployed Units, Pending Units, Avg Response (< 2s).

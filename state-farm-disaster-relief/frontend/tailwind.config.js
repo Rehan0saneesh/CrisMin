@@ -28,13 +28,11 @@ module.exports = {
       },
       keyframes: {
         shimmer: { "100%": { transform: "translateX(100%)" } },
-        indeterminate: { "0%": { transform: "translateX(-100%)" }, "100%": { transform: "translateX(400%)" } },
         "fade-in": { from: { opacity: "0", transform: "translateY(2px)" }, to: { opacity: "1", transform: "none" } },
         "row-flash": { from: { backgroundColor: "rgb(var(--accent) / 0.12)" }, to: { backgroundColor: "transparent" } },
       },
       animation: {
         shimmer: "shimmer 1.4s infinite",
-        indeterminate: "indeterminate 1.1s ease-in-out infinite",
         "fade-in": "fade-in 150ms ease-out",
         "row-flash": "row-flash 1.8s ease-out",
       },

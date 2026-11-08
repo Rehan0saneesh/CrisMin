@@ -24,7 +24,7 @@ const selectCls =
 
 export function IngestDialog({ open, onClose, onSubmit, submitting, disabled }: Props) {
   const [report, setReport] = useState("")
-  const [location, setLocation] = useState(Object.keys(LOCATIONS)[0])
+  const [location, setLocation] = useState<string>(LOCATIONS[0])
   const [damageType, setDamageType] = useState<string>(DAMAGE_TYPES[0])
   const ref = useRef<HTMLTextAreaElement>(null)
 
@@ -90,7 +90,7 @@ export function IngestDialog({ open, onClose, onSubmit, submitting, disabled }: 
             <label className="space-y-1.5">
               <span className="text-xs text-zinc-400">Location</span>
               <select value={location} onChange={(e) => setLocation(e.target.value)} className={selectCls}>
-                {Object.keys(LOCATIONS).map((l) => (
+                {LOCATIONS.map((l) => (
                   <option key={l}>{l}</option>
                 ))}
               </select>

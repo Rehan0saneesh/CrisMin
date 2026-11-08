@@ -268,11 +268,63 @@ export function Kbd({ children }: { children: ReactNode }) {
   )
 }
 
-/** Thin indeterminate bar for in-flight requests. */
-export function ProgressBar({ active }: { active: boolean }) {
+/** Accessible on/off switch. */
+export function Switch({
+  checked,
+  onChange,
+  label,
+  disabled,
+}: {
+  checked: boolean
+  onChange: () => void
+  label?: string
+  disabled?: boolean
+}) {
   return (
-    <div className={cn("h-px w-full overflow-hidden transition-opacity duration-150", active ? "opacity-100" : "opacity-0")}>
-      <div className="h-full w-1/4 animate-indeterminate bg-zinc-300" />
+    <button
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={onChange}
+      className={cn(
+        "relative inline-flex h-4 w-7 shrink-0 items-center rounded-full border transition-colors duration-150 disabled:opacity-40",
+        checked ? "border-transparent bg-zinc-100" : "border-zinc-700 bg-zinc-800",
+      )}
+    >
+      <span
+        className={cn(
+          "inline-block h-3 w-3 rounded-full transition-transform duration-150",
+          checked ? "translate-x-[13px] bg-zinc-900" : "translate-x-[1px] bg-zinc-400",
+        )}
+      />
+    </button>
+  )
+}
+
+/** Thin horizontal confidence meter with a threshold tick. */
+export function ConfidenceBar({ value, threshold, className }: { value: number; threshold?: number; className?: string }) {
+  const committed = threshold !== undefined && value >= threshold
+  return (
+    <div className={cn("relative h-1 w-full overflow-hidden rounded-full bg-zinc-800", className)}>
+      <div
+        className={cn("h-full rounded-full transition-[width] duration-500", committed ? "bg-emerald-500" : "bg-zinc-400")}
+        style={{ width: `${Math.max(2, value * 100)}%` }}
+      />
+      {threshold !== undefined && (
+        <span className="absolute inset-y-0 w-px bg-zinc-200/70" style={{ left: `${threshold * 100}%` }} />
+      )}
     </div>
+  )
+}
+
+/** Streak pips: ●●○ = 2 of 3 consecutive solves above threshold. */
+export function StreakPips({ streak, of }: { streak: number; of: number }) {
+  return (
+    <span className="inline-flex items-center gap-0.5" title={`${Math.min(streak, of)}/${of} consecutive solves above threshold`}>
+      {Array.from({ length: of }).map((_, i) => (
+        <span key={i} className={cn("h-1.5 w-1.5 rounded-full", i < streak ? "bg-emerald-500" : "bg-zinc-700")} />
+      ))}
+    </span>
   )
 }
