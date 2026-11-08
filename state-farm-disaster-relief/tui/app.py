@@ -25,8 +25,14 @@ API_BASE = "http://localhost:8000"
 class KPICard(Static):
     """A single metric card."""
 
-    def __init__(self, label: str, value: str, status: str = "neutral") -> None:
-        super().__init__()
+    def __init__(
+        self,
+        label: str,
+        value: str,
+        status: str = "neutral",
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
         self.label = label
         self.value = value
         self.status = status
