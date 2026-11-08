@@ -1,6 +1,6 @@
 """FastAPI backend for the State Farm catastrophe response platform."""
 
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
@@ -80,8 +80,7 @@ def list_models():
     response_model=TelemetryIngestResponse,
 )
 async def ingest_telemetry(
-    reports: list[str],
-    background_tasks: BackgroundTasks,
+    reports: list[str] = Body(embed=True),
 ):
     """Accept batch raw text reports, normalize, and persist to PostgreSQL."""
 
