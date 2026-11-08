@@ -13,6 +13,7 @@ Usage:
   python test/run_simulation.py
 """
 
+import argparse
 import subprocess
 import sys
 import time
@@ -21,29 +22,50 @@ from pathlib import Path
 TEST_DIR = Path(__file__).resolve().parent
 
 
-def check_mqtt_broker() -> bool:
-    """Check if an MQTT broker is reachable on localhost:1883."""
+def check_port(host: str, port: int, timeout: float = 2.0) -> bool:
+    """Check if a TCP port is reachable, trying IPv4 then IPv6."""
 
     import socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(2)
-    result = sock.connect_ex(("localhost", 1883))
-    sock.close()
-    return result == 0
+    for family in (socket.AF_INET, socket.AF_INET6):
+        try:
+            sock = socket.socket(family, socket.SOCK_STREAM)
+            sock.settimeout(timeout)
+            result = sock.connect_ex((host, port))
+            sock.close()
+            if result == 0:
+                return True
+        except OSError:
+            continue
+    return False
+
+
+def check_mqtt_broker() -> bool:
+    """Check if an MQTT broker is reachable on port 1883."""
+
+    import os
+    host = os.getenv("MQTT_BROKER_HOST", "127.0.0.1")
+    return check_port(host, 1883)
 
 
 def check_backend() -> bool:
     """Check if the FastAPI backend is reachable."""
 
-    import socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.settimeout(2)
-    result = sock.connect_ex(("localhost", 8000))
-    sock.close()
-    return result == 0
+    import os
+    host = os.getenv("BACKEND_HOST", "127.0.0.1")
+    return check_port(host, 8000)
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="CrisMin Real-Time MQTT Test Simulation"
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip prerequisite checks and start simulation anyway",
+    )
+    args = parser.parse_args()
+
     print("=" * 60)
     print("CrisMin Real-Time MQTT Test Simulation")
     print("=" * 60)
@@ -52,22 +74,29 @@ def main():
     mqtt_ok = check_mqtt_broker()
     backend_ok = check_backend()
 
+    mqtt_host = __import__("os").getenv("MQTT_BROKER_HOST", "127.0.0.1")
+    backend_host = __import__("os").getenv("BACKEND_HOST", "127.0.0.1")
+
     if not mqtt_ok:
-        print("\n[WARN] MQTT broker not detected on localhost:1883")
-        print("       Install and start mosquitto:  brew install mosquitto && brew services start mosquitto")
-        print("       Or:  docker run -it -p 1883:1883 eclipse-mosquitto")
+        print(f"\n[WARN] MQTT broker not detected on {mqtt_host}:1883")
+        print("       Start mosquitto:  mosquitto -v")
+        print("       Or via Docker:    docker run -it -p 1883:1883 eclipse-mosquitto")
     else:
-        print("\n[OK] MQTT broker detected on localhost:1883")
+        print(f"\n[OK] MQTT broker detected on {mqtt_host}:1883")
 
     if not backend_ok:
-        print("\n[WARN] Backend not detected on localhost:8000")
+        print(f"\n[WARN] Backend not detected on {backend_host}:8000")
         print("       Start it:  cd backend && source .venv/bin/activate && uvicorn app.main:app --reload")
     else:
-        print("[OK] Backend detected on localhost:8000")
+        print(f"[OK] Backend detected on {backend_host}:8000")
 
     if not mqtt_ok or not backend_ok:
-        print("\nPlease start the missing services, then re-run this script.")
-        sys.exit(1)
+        if args.force:
+            print("\n[WARN] Prerequisites missing but --force set; starting anyway.\n")
+        else:
+            print("\nPlease start the missing services, then re-run this script.")
+            print("Use --force to skip checks and start anyway.")
+            sys.exit(1)
 
     print("\nStarting subscriber...")
     subscriber = subprocess.Popen(
