@@ -1,68 +1,114 @@
 "use client"
 
-import { useState } from "react"
-import { Bell, User, Wifi, Clock, Play, Send, RefreshCw } from "lucide-react"
+import { useEffect, useState } from "react"
+import { PanelLeft, Play, Plus, RotateCcw } from "lucide-react"
+import { Badge, Button, Dot, Kbd, ProgressBar } from "./ui"
 
-export function TopNav() {
-  const [connected, setConnected] = useState(true)
+type Props = {
+  backendOnline: boolean | null
+  latencyMs: number | null
+  busy: boolean
+  isOptimizing: boolean
+  onToggleSidebar: () => void
+  onIngest: () => void
+  onOptimize: () => void
+  onReset: () => void
+}
+
+function LiveClock() {
+  const [now, setNow] = useState<Date | null>(null)
+  useEffect(() => {
+    setNow(new Date())
+    const id = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(id)
+  }, [])
+  const t = now ? now.toLocaleTimeString([], { hour12: false }) : "--:--:--"
+  const tz = now ? now.toLocaleTimeString([], { timeZoneName: "short" }).split(" ").pop() : ""
+  return (
+    <span className="num text-zinc-400">
+      {t} <span className="text-zinc-600">{tz}</span>
+    </span>
+  )
+}
+
+/** Small geometric mark: a crosshair inside a rounded square. */
+function LogoMark() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-6 w-6" aria-hidden>
+      <rect x="0.5" y="0.5" width="23" height="23" rx="6" className="fill-zinc-100" />
+      <circle cx="12" cy="12" r="5" className="fill-none stroke-zinc-950" strokeWidth="2" />
+      <path d="M12 4v4M12 16v4M4 12h4M16 12h4" className="stroke-zinc-950" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+export function TopNav({
+  backendOnline,
+  latencyMs,
+  busy,
+  isOptimizing,
+  onToggleSidebar,
+  onIngest,
+  onOptimize,
+  onReset,
+}: Props) {
+  const tone = backendOnline === null ? "neutral" : backendOnline ? "success" : "critical"
+  const label = backendOnline === null ? "Connecting" : backendOnline ? "Operational" : "Offline"
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 bg-[#0F1117] border-b border-[#2D323E] h-14 flex items-center justify-between px-6 shrink-0">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#3B82F6] border border-[#2D323E] flex items-center justify-center">
-            <span className="text-white text-xs font-bold">SF</span>
-          </div>
-          <div>
-            <h1 className="text-sm font-bold text-[#F8FAFC] tracking-tight leading-none">
-              CrisMin
-            </h1>
-            <p className="text-[10px] text-[#94A3B8] leading-none">
-              State Farm Catastrophe Response &amp; Optimization Platform
-            </p>
-          </div>
+    <header className="relative z-40 shrink-0 border-b border-zinc-800/80 bg-zinc-950">
+      <div className="flex h-12 items-center gap-2 px-3">
+        <Button variant="ghost" size="icon-sm" icon={PanelLeft} onClick={onToggleSidebar} aria-label="Toggle fleet panel" />
+
+        <div className="flex min-w-0 items-center gap-2.5 pl-1">
+          <LogoMark />
+          <span className="text-[13px] font-semibold tracking-tight text-zinc-100">CrisMin</span>
+          <span className="hidden text-zinc-700 sm:inline">/</span>
+          <span className="hidden truncate text-[13px] text-zinc-400 sm:inline">Gulf Coast</span>
+          <span className="hidden text-zinc-700 md:inline">/</span>
+          <span className="hidden truncate text-[13px] text-zinc-400 md:inline">Hurricane response</span>
+          <Badge tone="critical" className="ml-1 hidden md:inline-flex">
+            Active
+          </Badge>
         </div>
 
-        <div className="h-6 w-px bg-[#2D323E] mx-2" />
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-[#1E222B] border border-[#2D323E]">
-            <span className={`w-1.5 h-1.5 rounded-full ${connected ? "bg-[#10B981]" : "bg-[#EF4444]"}`} />
-            <span className="text-xs text-[#94A3B8]">System Online</span>
+        <div className="ml-auto flex items-center gap-2">
+          <div
+            className="hidden h-7 items-center gap-2 rounded-md border border-zinc-800/80 px-2.5 lg:flex"
+            title={backendOnline === false ? "Backend unreachable" : "Backend health"}
+          >
+            <Dot tone={tone} />
+            <span className="text-xs text-zinc-400">{label}</span>
+            {backendOnline && latencyMs !== null && <span className="num text-zinc-600">{latencyMs}ms</span>}
+          </div>
+          <div className="hidden h-7 items-center rounded-md border border-zinc-800/80 px-2.5 xl:flex">
+            <LiveClock />
           </div>
 
-          <div className="h-6 w-px bg-[#2D323E] mx-2" />
+          <div className="mx-1 hidden h-5 w-px bg-zinc-800 lg:block" />
 
-          <button className="btn-primary flex items-center gap-1.5">
-            <Send size={14} /> Ingest Telemetry
-          </button>
-          <button className="btn-primary flex items-center gap-1.5">
-            <Play size={14} /> Run Optimization
-          </button>
+          <Button variant="ghost" size="icon-sm" icon={RotateCcw} onClick={onReset} title="Reset scenario" aria-label="Reset scenario" />
+          <Button variant="secondary" size="sm" icon={Plus} onClick={onIngest} title="New loss report (N)">
+            <span className="hidden sm:inline">New report</span>
+            <span className="hidden lg:inline-flex">
+              <Kbd>N</Kbd>
+            </span>
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            icon={Play}
+            loading={isOptimizing}
+            onClick={onOptimize}
+            disabled={backendOnline === false}
+            title="Run optimization (O)"
+          >
+            <span className="hidden sm:inline">{isOptimizing ? "Solving…" : "Run optimization"}</span>
+          </Button>
         </div>
       </div>
-
-      <div className="flex items-center gap-4">
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[#1E222B] border border-[#2D323E]">
-          <Wifi size={14} className="text-[#94A3B8]" />
-          <span className="text-xs text-[#F8FAFC]">All Services Operational</span>
-        </div>
-
-        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-[#1E222B] border border-[#2D323E]">
-          <Clock size={14} className="text-[#94A3B8]" />
-          <span className="text-xs text-[#F8FAFC]" id="live-clock">--:--:--</span>
-        </div>
-
-        <div className="h-6 w-px bg-[#2D323E] mx-2" />
-
-        <div className="flex items-center gap-2">
-          <button className="p-1.5 text-[#94A3B8] hover:text-[#F8FAFC] transition-colors" title="Notifications">
-            <Bell size={16} />
-          </button>
-          <button className="p-1.5 text-[#94A3B8] hover:text-[#F8FAFC] transition-colors" title="Operator Profile">
-            <User size={16} />
-          </button>
-        </div>
+      <div className="absolute inset-x-0 bottom-0 translate-y-px">
+        <ProgressBar active={busy} />
       </div>
     </header>
   )
