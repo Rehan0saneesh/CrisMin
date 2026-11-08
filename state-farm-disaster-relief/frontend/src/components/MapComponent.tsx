@@ -5,8 +5,8 @@ import "leaflet/dist/leaflet.css"
 import { useEffect, useState } from "react"
 import L from "leaflet"
 
-const DEFAULT_CENTER: [number, number] = [30.5, -88.0]
-const DEFAULT_ZOOM = 6
+const DEFAULT_CENTER: [number, number] = [30.0, -88.5]
+const DEFAULT_ZOOM = 7
 
 type ClaimPin = {
   id: string
@@ -29,16 +29,20 @@ type MapComponentProps = {
   units: UnitPin[]
 }
 
+function setupLeafletIcons() {
+  delete (L.Icon.prototype as any)._getIconUrl
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+    shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  })
+}
+
 export function MapComponent({ claims, units }: MapComponentProps) {
   const [center, setCenter] = useState<[number, number]>(DEFAULT_CENTER)
 
   useEffect(() => {
-    delete (L.Icon.prototype as any)._getIconUrl
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
-      iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-      shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-    })
+    setupLeafletIcons()
 
     const allPins = [...claims, ...units]
     if (allPins.length > 0) {
@@ -47,12 +51,15 @@ export function MapComponent({ claims, units }: MapComponentProps) {
   }, [claims, units])
 
   return (
-    <div className="w-full h-full rounded border border-slate-800 overflow-hidden">
+    <div className="flex-1 min-h-0 bg-[#0F1117] relative overflow-hidden">
+      <div className="absolute top-3 left-3 z-10 bg-[#1E222B]/90 backdrop-blur px-3 py-1 rounded-none border border-[#2D323E] text-[10px] font-bold text-[#F8FAFC] uppercase tracking-wider">
+        Imagery & Sensor Overlay
+      </div>
+
       <MapContainer
         center={center}
         zoom={DEFAULT_ZOOM}
         className="w-full h-full"
-        style={{ height: "100%" }}
         scrollWheelZoom={false}
       >
         <TileLayer
@@ -71,30 +78,82 @@ export function MapComponent({ claims, units }: MapComponentProps) {
             [27.5, -85.0],
             [27.0, -87.0],
           ]}
-          color="slate-600"
+          color="#EF4444"
           weight={2}
-          fillColor="slate-600"
+          fillColor="#EF4444"
+          fillOpacity={0.15}
+        >
+          <Popup>
+            <div className="p-2 text-xs">
+              <div className="text-[#EF4444] font-bold">CRITICAL DISASTER SECTOR</div>
+              <div className="text-[#94A3B8]">Hurricane tracking cone Gulf Coast</div>
+            </div>
+          </Popup>
+        </Polygon>
+
+        <Polygon
+          positions={[
+            [26.0, -84.0],
+            [27.0, -82.0],
+            [28.0, -81.0],
+            [27.0, -80.0],
+            [26.0, -81.0],
+          ]}
+          color="#10B981"
+          weight={2}
+          fillColor="#10B981"
           fillOpacity={0.1}
-        />
+        >
+          <Popup>
+            <div className="p-2 text-xs">
+              <div className="text-[#10B981] font-bold">CLEARED ZONE</div>
+              <div className="text-[#94A3B8]">No active claims resources released</div>
+            </div>
+          </Popup>
+        </Polygon>
 
-        <Circle center={[29.0, -88.5]} radius={120000} color="slate-500" weight={2} fillColor="slate-500" fillOpacity={0.08} />
+        <Circle
+          center={[29.0, -88.5]}
+          radius={120000}
+          color="#F59E0B"
+          weight={2}
+          fillColor="#F59E0B"
+          fillOpacity={0.08}
+        >
+          <Popup>Severe Storm Impact Zone</Popup>
+        </Circle>
 
-        <Polyline positions={[[26.0, -92.0], [28.0, -90.0], [30.0, -88.0], [32.0, -86.0], [34.0, -84.0]]} color="slate-500" weight={2} dashArray="5,5" opacity={0.6} />
+        <Polyline
+          positions={[
+            [26.0, -92.0],
+            [28.0, -90.0],
+            [30.0, -88.0],
+            [32.0, -86.0],
+            [34.0, -84.0],
+          ]}
+          color="#94A3B8"
+          weight={2}
+          dashArray="5,5"
+          opacity={0.6}
+        >
+          <Popup>Weather Front</Popup>
+        </Polyline>
 
         {claims.map((claim, i) => {
-          const color = claim.severity >= 8 ? "#ef4444" : claim.severity >= 5 ? "#f59e0b" : "#22c55e"
+          const color =
+            claim.severity >= 8 ? "#EF4444" : claim.severity >= 5 ? "#F59E0B" : "#10B981"
           const divIcon = L.divIcon({
             className: "",
-            html: `<div style="width:12px;height:12px;background:${color};border:2px solid #0a0a0a;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.5);"></div>`,
-            iconSize: [12, 12],
-            iconAnchor: [6, 6],
+            html: `<div style="width:10px;height:10px;background:${color};border:2px solid #0F1117;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.5);"></div>`,
+            iconSize: [10, 10],
+            iconAnchor: [5, 5],
           })
           return (
             <Marker key={i} position={[claim.lat, claim.lng]} icon={divIcon}>
               <Popup>
                 <div className="p-2 text-xs">
-                  <div className="text-slate-200 font-medium">{claim.label}</div>
-                  <div className="text-slate-500">Severity {claim.severity}</div>
+                  <div className="text-[#F8FAFC] font-bold">{claim.label}</div>
+                  <div className="text-[#94A3B8]">Severity {claim.severity}</div>
                 </div>
               </Popup>
             </Marker>
@@ -102,25 +161,36 @@ export function MapComponent({ claims, units }: MapComponentProps) {
         })}
 
         {units.map((unit, i) => {
-          const color = unit.status === "Deployed" ? "#ef4444" : unit.status === "En Route" ? "#f59e0b" : "#22c55e"
+          const color =
+            unit.status === "Deployed"
+              ? "#3B82F6"
+              : unit.status === "En Route"
+              ? "#F59E0B"
+              : "#10B981"
           const divIcon = L.divIcon({
             className: "",
-            html: `<div style="width:14px;height:14px;background:${color};border:2px solid #0a0a0a;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>`,
-            iconSize: [14, 14],
-            iconAnchor: [7, 7],
+            html: `<div style="width:12px;height:12px;background:${color};border:2px solid #0F1117;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,0.5);"></div>`,
+            iconSize: [12, 12],
+            iconAnchor: [6, 6],
           })
           return (
             <Marker key={i} position={[unit.lat, unit.lng]} icon={divIcon}>
               <Popup>
                 <div className="p-2 text-xs">
-                  <div className="text-slate-200 font-medium">{unit.label}</div>
-                  <div className="text-slate-500">{unit.status}</div>
+                  <div className="text-[#F8FAFC] font-bold">{unit.label}</div>
+                  <div className="text-[#94A3B8]">{unit.status}</div>
                 </div>
               </Popup>
             </Marker>
           )
         })}
       </MapContainer>
+
+      <div className="absolute bottom-3 left-3 z-10 bg-[#1E222B]/90 backdrop-blur px-3 py-1.5 border border-[#2D323E] flex items-center gap-3 text-[10px] text-[#94A3B8]">
+        <span id="map-coords">30.0000, -88.5000</span>
+        <span className="w-px h-3 bg-[#2D323E] mx-1" />
+        <span>Zoom 7</span>
+      </div>
     </div>
   )
 }

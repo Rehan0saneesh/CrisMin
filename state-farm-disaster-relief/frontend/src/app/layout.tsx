@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "CrisMin — State Farm Catastrophe Response",
-  description: "Disaster response command center dashboard",
+  description: "Enterprise B2B Catastrophe Response Command Center",
 }
 
 export default function RootLayout({

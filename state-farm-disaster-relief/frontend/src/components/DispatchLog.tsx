@@ -1,18 +1,19 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Terminal } from "lucide-react"
 
 const INITIAL_LOGS = [
-  "10:15 AM  CRU Mobile Command Unit 1 deployed  Gulfport, MS  Roof Damage",
-  "10:12 AM  Claims Adjuster Team A en route  Mobile, AL  Water Intrusion",
-  "10:08 AM  Severe weather front crossing Mobile Bay",
-  "10:05 AM  Supply Truck Delta staged  Pensacola, FL  Idle",
-  "10:01 AM  Hurricane tracking cone updated  Gulf Coast",
-  "9:55 AM   CRU Mobile Command Unit 2 deployed  Biloxi, MS  Structural Collapse",
-  "9:48 AM   Flooding reported  New Orleans, LA  Priority High",
-  "9:42 AM   QUBO solver complete  4 units assigned",
-  "9:35 AM   Nemotron normalized 47 telemetry reports",
-  "9:30 AM   System online  Catastrophe Response Platform active",
+  "10:15:22  CRU-01 deployed  Gulfport, MS  Roof Damage  severity=9",
+  "10:12:15  ADJ-01 en route  Mobile, AL  Water Intrusion  severity=8",
+  "10:08:00  Weather front crossing Mobile Bay",
+  "10:05:30  SUP-01 staged  Pensacola, FL  Idle",
+  "10:01:48  Hurricane tracking cone updated  Gulf Coast",
+  "9:55:00  CRU-02 deployed  Biloxi, MS  Structural Collapse  severity=10",
+  "9:48:10  Flooding reported  New Orleans, LA  Priority High",
+  "9:42:00  QUBO solver complete  4 units assigned",
+  "9:35:00  Nemotron normalized 47 telemetry reports",
+  "9:30:00  System online  Catastrophe Response Platform active",
 ]
 
 export function DispatchLog({ logs }: { logs: string[] }) {
@@ -20,14 +21,14 @@ export function DispatchLog({ logs }: { logs: string[] }) {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+      const now = new Date().toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" })
       const events = [
-        `${now}  Telemetry report ingested  structural damage detected`,
+        `${now}  Telemetry ingested  structural damage detected`,
         `${now}  QUBO optimization cycle complete`,
         `${now}  Weather alert  wind speeds increasing near coast`,
       ]
       const event = events[Math.floor(Math.random() * events.length)]
-      setAllLogs((prev) => [event, ...prev].slice(0, 20))
+      setAllLogs((prev) => [event, ...prev].slice(0, 30))
     }, 6000)
     return () => clearInterval(interval)
   }, [])
@@ -35,18 +36,27 @@ export function DispatchLog({ logs }: { logs: string[] }) {
   const displayLogs = logs.length > 0 ? logs : allLogs
 
   return (
-    <div className="rounded border border-slate-800 bg-slate-900/50 p-4 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">dispatch log</span>
-        <span className="text-[10px] text-slate-600">live audit trail</span>
+    <div className="flex-1 min-h-0 border border-[#2D323E] bg-[#0F1117] flex flex-col overflow-hidden">
+      <div className="px-3 py-2 border-b border-[#2D323E] bg-[#11141A] flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2">
+          <Terminal size={14} className="text-[#3B82F6]" />
+          <span className="text-xs font-bold text-[#F8FAFC] uppercase tracking-wider">Dispatch Audit Log</span>
+        </div>
+        <span className="text-[10px] text-[#94A3B8]">Live audit trail</span>
       </div>
-      <div className="flex-1 overflow-y-auto font-mono text-xs space-y-1.5 pr-2">
-        {displayLogs.map((log, i) => (
-          <div key={i} className="text-slate-400">
-            <span className="text-slate-600">{log.split("  ")[0]}</span>{" "}
-            <span className="text-slate-300">{log.split("  ").slice(1).join("  ")}</span>
-          </div>
-        ))}
+      <div className="flex-1 overflow-y-auto font-mono text-[10px] pr-1">
+        {displayLogs.length > 0 ? (
+          displayLogs.map((log, i) => {
+            const isAlert = log.includes("alert") || log.includes("Severe") || log.includes("severity=10") || log.includes("Critical")
+            return (
+              <div key={i} className={`px-3 py-0.5 ${isAlert ? "text-[#EF4444] font-bold" : "text-[#94A3B8]"}`}>
+                {log}
+              </div>
+            )
+          })
+        ) : (
+          <div className="px-3 py-2 text-[#64748B] italic">No dispatch events yet.</div>
+        )}
       </div>
     </div>
   )

@@ -3,48 +3,105 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bg-canvas: #0F1117;
+    --bg-container: #1E222B;
+    --border: #2D323E;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --critical: #EF4444;
+    --active: #3B82F6;
+    --warning: #F59E0B;
+    --resolved: #10B981;
+  }
+
   html {
     scroll-behavior: smooth;
   }
+
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    background-color: #0a0a0a;
-    color: #e5e5e5;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg-canvas);
+    color: var(--text-primary);
     line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  .leaflet-container {
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background: var(--bg-canvas);
+    font-family: inherit;
+    font-size: 12px;
   }
 }
 
-@layer utilities {
-  .fade-in {
-    animation: fadeIn 0.4s ease-out forwards;
+@layer components {
+  .btn-primary {
+    @apply bg-[#3B82F6] text-white text-xs font-semibold px-3 py-1.5 border-none uppercase tracking-wider transition-colors duration-150;
   }
-  .slide-up {
-    animation: slideUp 0.5s ease-out forwards;
+  .btn-primary:hover {
+    @apply bg-[#2563EB];
   }
-  .pulse-subtle {
-    animation: pulseSubtle 3s ease-in-out infinite;
+  .btn-primary:disabled {
+    @apply opacity-50 cursor-not-allowed;
   }
-}
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+  .btn-outline {
+    @apply bg-transparent border border-[#2D323E] text-[#94A3B8] text-xs font-semibold px-3 py-1.5 uppercase tracking-wider transition-colors duration-150;
+  }
+  .btn-outline:hover {
+    @apply border-[#F8FAFC] text-[#F8FAFC];
+  }
 
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+  .panel {
+    @apply bg-[#1E222B] border border-[#2D323E] shadow-none;
+  }
 
-@keyframes pulseSubtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
+  .section-title {
+    @apply text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider mb-2;
+  }
 
-.leaflet-container {
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  background: #0a0a0a;
+  .status-pill {
+    @apply px-2 py-0.5 rounded-none text-[10px] font-bold border border-solid;
+  }
+  .status-pill.deployed {
+    @apply bg-[#3B82F6]/10 border-[#3B82F6] text-[#3B82F6];
+  }
+  .status-pill.en-route {
+    @apply bg-[#F59E0B]/10 border-[#F59E0B] text-[#F59E0B];
+  }
+  .status-pill.idle {
+    @apply bg-[#10B981]/10 border-[#10B981] text-[#10B981];
+  }
+
+  .kpi-value {
+    @apply text-lg font-mono text-[#F8FAFC] tabular-nums;
+  }
+  .kpi-label {
+    @apply text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider;
+  }
+
+  .severity-bar {
+    @apply h-1.5 bg-[#2D323E] rounded-none overflow-hidden w-full;
+  }
+  .severity-fill {
+    @apply h-full;
+  }
+
+  .table-header {
+    @apply text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider border-b border-[#2D323E] pb-1;
+  }
+
+  .terminal-text {
+    font-family: "SF Mono", "Monaco", "Cascadia Code", "monospace";
+    font-size: 11px;
+  }
 }

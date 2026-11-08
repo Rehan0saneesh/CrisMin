@@ -10,6 +10,8 @@ import { ResourceAllocation } from "@/components/ResourceAllocation"
 import { FleetCards } from "@/components/FleetCards"
 import { DispatchLog } from "@/components/DispatchLog"
 import { RedAlertWidget } from "@/components/RedAlertWidget"
+import { TopNav } from "@/components/TopNav"
+import { Sidebar } from "@/components/Sidebar"
 import { runOptimization } from "@/lib/api"
 import { Play, Send, RefreshCw } from "lucide-react"
 
@@ -30,10 +32,10 @@ type UnitPin = {
 }
 
 const MOCK_CLAIM_PINS: ClaimPin[] = [
-  { id: "1", lat: 30.69, lng: -88.04, severity: 9, label: "Claim #4 - Mobile, AL" },
-  { id: "2", lat: 30.37, lng: -89.09, severity: 8, label: "Claim #11 - Gulfport, MS" },
-  { id: "3", lat: 30.42, lng: -87.22, severity: 10, label: "Claim #18 - Pensacola, FL" },
-  { id: "4", lat: 30.39, lng: -88.89, severity: 6, label: "Claim #23 - Biloxi, MS" },
+  { id: "1", lat: 30.69, lng: -88.04, severity: 9, label: "CLM-4004 - Mobile, AL" },
+  { id: "2", lat: 30.37, lng: -89.09, severity: 8, label: "CLM-4011 - Gulfport, MS" },
+  { id: "3", lat: 30.42, lng: -87.22, severity: 10, label: "CLM-4018 - Pensacola, FL" },
+  { id: "4", lat: 30.39, lng: -88.89, severity: 6, label: "CLM-4023 - Biloxi, MS" },
 ]
 
 const MOCK_UNIT_PINS: UnitPin[] = [
@@ -68,9 +70,9 @@ export default function ClientPage() {
     try {
       const result = await runOptimization(validReports, 2)
       setOptimizationResult(result)
-      addLog(`Solver complete  energy ${result.best_energy.toFixed(2)}`)
+      addLog(`Solver complete energy ${result.best_energy.toFixed(2)}`)
     } catch (err) {
-      addLog(`Optimization error  ${(err as Error).message}`)
+      addLog(`Optimization error ${(err as Error).message}`)
     } finally {
       setIsLoading(false)
     }
@@ -84,69 +86,51 @@ export default function ClientPage() {
   const pendingCount = optimizationResult?.deployed_zones?.filter((z: any) => !z.deployed).length || 0
 
   return (
-    <div className="min-h-screen bg-black text-slate-300 p-4 md:p-6">
+    <div className="min-h-screen bg-[#0F1117] text-[#F8FAFC]">
       <RedAlertWidget />
 
-      <header className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-3">
-        <div>
-          <h1 className="text-sm font-bold text-slate-100 tracking-tight">crismin</h1>
-          <p className="text-[10px] text-slate-500">state farm catastrophe response  optimization platform</p>
-        </div>
-        <div className="flex items-end gap-2">
-          <button
-            onClick={handleIngest}
-            disabled={isLoading}
-            className="px-3 py-1.5 rounded border border-slate-700 bg-slate-900/50 text-xs font-medium text-slate-300 hover:bg-slate-800/70 transition disabled:opacity-50"
-          >
-            <Send size={14} className="mr-1" /> ingest telemetry
-          </button>
-          <button
-            onClick={handleOptimize}
-            disabled={isLoading}
-            className="px-3 py-1.5 rounded border border-slate-700 bg-slate-900/50 text-xs font-medium text-slate-300 hover:bg-slate-800/70 transition disabled:opacity-50"
-          >
-            <Play size={14} className="mr-1" /> run optimization
-          </button>
-          <button
-            onClick={() => window.location.reload()}
-            className="text-[10px] text-slate-500 hover:text-slate-300 underline"
-          >
-            <RefreshCw size={12} className="mr-1" /> refresh
-          </button>
-        </div>
-      </header>
+      <TopNav />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <KPICards
-          totalClaims={4157}
-          deployedUnits={deployedCount || 2}
-          pendingUnits={pendingCount || 5}
-        />
+      <div className="pt-14 pb-6">
+        {/* Top metric bar */}
+        <div className="flex gap-3 px-4 mb-4">
+          <KPICards
+            totalClaims={4157}
+            deployedUnits={deployedCount || 2}
+            pendingUnits={pendingCount || 5}
+          />
+        </div>
 
-        <div className="lg:col-span-3 flex flex-col lg:flex-row gap-4 min-h-[520px]">
-          <div className="flex-1 min-h-[400px] rounded border border-slate-800 overflow-hidden">
+        {/* Main layout: Sidebar + Map + Bottom Dock */}
+        <div className="flex flex-col lg:flex-row gap-4 px-4 h-[calc(100vh-220px)] max-h-[700px]">
+          <Sidebar />
+
+          {/* Map viewport */}
+          <div className="flex-1 min-h-0 border border-[#2D323E] bg-[#0F1117] relative overflow-hidden flex flex-col">
             <MapComponent claims={MOCK_CLAIM_PINS} units={MOCK_UNIT_PINS} />
           </div>
-          <div className="w-full lg:w-80 flex flex-col gap-4">
+        </div>
+
+        {/* Bottom dock: Claims + Resource + Fleet */}
+        <div className="mt-3 flex flex-col lg:flex-row gap-4 px-4 h-[300px]">
+          <div className="flex-1 min-h-0">
             <ClaimsTable />
+          </div>
+          <div className="lg:w-80 flex flex-col gap-3 min-h-0">
+            <ResourceAllocation />
             <FleetCards />
           </div>
         </div>
 
-        <div className="flex-1">
-          <ResourceAllocation />
-        </div>
-      </div>
-
-      <div className="mt-5 flex flex-col lg:flex-row gap-4">
-        <div className="flex-1">
+        {/* Bottom dispatch log */}
+        <div className="mt-3 px-4">
           <DispatchLog logs={logs} />
         </div>
       </div>
 
       {isLoading && (
-        <div className="fixed bottom-4 left-4 rounded border border-slate-700 bg-slate-900/80 px-3 py-1.5 text-xs text-slate-300 animate-pulse">
-          processing
+        <div className="fixed bottom-4 left-4 rounded-none border border-[#2D323E] bg-[#1E222B] px-3 py-1.5 text-[10px] text-[#F8FAFC]">
+          Processing
         </div>
       )}
     </div>
