@@ -343,7 +343,7 @@ The 15 tests cover:
 - **Classical solver.** The QUBO is solved by simulated annealing on a CPU,
   not quantum hardware.
 
-# Built for HackUTD 2026
+### Built for HackUTD 2026
 
 ## License
 
